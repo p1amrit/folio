@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Preview documents, images, media and more locally in your browser."><title>Folio — File preview</title>
+<style>
+*{box-sizing:border-box} [hidden]{display:none!important} body{margin:0;background:#f6f5fc;color:#201839;font:16px system-ui,sans-serif} button,a{font:inherit} button{cursor:pointer} :focus-visible{outline:3px solid #8c66f0;outline-offset:4px} header{height:72px;border-bottom:1px solid #e6e0f1;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 max(5vw,20px)} .brand{font-weight:800;font-size:24px;letter-spacing:-1px;display:flex;align-items:center;gap:10px}.logo,.icon{display:grid;place-items:center;color:white;background:#6039d3;border-radius:12px;width:38px;height:38px}.privacy{color:#51446c;font-size:14px}.privacy span{color:#27816b;margin-right:5px} main{width:min(1080px,92vw);margin:62px auto 40px}.intro{text-align:center;margin-bottom:35px}h1{font-size:clamp(38px,7vw,70px);letter-spacing:-.075em;line-height:1.02;margin:0 0 16px}p{line-height:1.55;color:#605675;margin:8px 0}.workspace{background:white;border:1px solid #e5def3;border-radius:24px;padding:18px;box-shadow:0 20px 55px #3820580c} .drop{border:2px dashed #d9cbf8;border-radius:17px;min-height:318px;text-align:center;display:grid;place-content:center;justify-items:center;background:#fbf9ff;padding:24px}.drag .drop,.drag .workspace{background:#eee5ff;border-color:#7047dd}.icon{width:62px;height:62px;border-radius:18px;background:#eee5ff;color:#6039d3;margin-bottom:14px}.icon svg,.logo svg{width:55%;height:55%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}h2{margin:0;font-size:23px;letter-spacing:-.5px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:10px 15px;font-weight:650;font-size:14px}.primary{color:#fff;background:#6039d3;border:1px solid #6039d3}.primary:hover{background:#4e2ab9}.secondary{color:#4d367e;background:#f8f4ff;border:1px solid #e6dcf7}.drop button{margin-top:13px}.formats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.format{padding:16px 17px;background:white;border:1px solid #e5def3;border-radius:14px}.format b{display:block;font-size:14px}.format small{color:#605675;font-size:13px;display:block;margin-top:5px}.format i{font-style:normal;color:#6740c8;display:block;font-size:18px;margin-bottom:8px}.footer{margin-top:23px;text-align:center;font-size:13px;color:#605675}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar strong{flex:1;overflow-wrap:anywhere;min-width:125px}.viewer{display:grid;grid-template-columns:minmax(0,1fr)}.viewer.has-list{grid-template-columns:210px minmax(0,1fr);gap:12px}.files{max-height:65vh;overflow:auto}.files button{display:block;width:100%;background:white;border:0;border-radius:8px;text-align:left;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding:10px;color:#30264b}.files button[aria-current=true]{background:#eee5ff;font-weight:700}.surface{background:#f6f3fb;border:1px solid #ebe5f4;border-radius:12px;min-height:320px;max-height:76vh;overflow:auto;padding:18px;display:grid;align-content:start}.surface img,.surface video{max-width:100%;max-height:68vh;margin:auto;display:block;object-fit:contain}.surface iframe{width:100%;height:68vh;border:0}.surface audio{width:min(100%,500px);margin:60px auto}.surface pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.55 ui-monospace,monospace}.surface table{border-collapse:collapse;width:max-content;max-width:100%;background:white;font-size:14px}.surface td{border:1px solid #e1d9ed;padding:7px 10px;white-space:pre-wrap}.surface article{background:white;padding:20px;border-radius:8px;margin-bottom:12px;overflow-wrap:anywhere}.surface article p{color:#201839;white-space:pre-wrap}.surface select{justify-self:start;margin-bottom:12px;padding:7px;font:inherit}.meta{font-size:13px;margin:9px 0 0}@media(max-width:650px){main{margin-top:38px}.formats{grid-template-columns:repeat(2,1fr)}.viewer.has-list{grid-template-columns:1fr}.files{max-height:120px}.workspace{padding:11px}.privacy{font-size:12px}}
+.file-tools{display:grid;gap:6px;margin:0 0 8px}.file-tools label{font-size:13px;font-weight:700}.file-tools input{width:100%;min-width:0;border:1px solid #ddd4ed;border-radius:8px;padding:8px;font:inherit}.file-row{display:flex;align-items:center}.file-row button:first-child{flex:1;min-width:0}.file-row .remove{width:auto;color:#594777;font-size:19px;padding:5px 9px}.file-row .remove:hover{background:#eee5ff}.table-wrap{overflow:auto;min-width:0}.surface{grid-template-columns:minmax(0,1fr)}.toolbar{position:relative}
+</style></head><body>
+<header><div class="brand"><span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V4h4m10 0h4v4m0 8v4h-4M7 20H3v-4"/><path d="M7 12s2-3 5-3 5 3 5 3-2 3-5 3-5-3-5-3Z"/></svg></span>Folio</div><div class="privacy"><span aria-hidden="true">●</span> Files stay on your device</div></header>
+<main><div class="intro"><h1>See what’s inside.</h1><p>Preview documents, images, media and more in one place.</p></div>
+<section class="workspace" aria-label="File preview workspace"><input id="picker" type="file" multiple hidden>
+<div class="drop" id="drop"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M12 17v-6m-3 3 3-3 3 3"/></svg></div><h2>Drop files here</h2><p>Open one file or preview several in a batch.</p><button class="primary" id="choose">Choose files</button></div>
+<div id="panel" hidden><div class="toolbar"><strong id="filename"></strong><button id="add" class="secondary">Add files</button><a id="download" class="secondary">Download</a><button id="clear" class="secondary">Clear all</button></div><div class="viewer" id="viewer"><aside id="sidebar"><div class="file-tools"><label for="filter">Find an open file</label><input type="search" id="filter" autocomplete="off"></div><nav id="files" class="files" aria-label="Open files"></nav></aside><div class="surface" id="surface" aria-label="File contents" tabindex="0"></div></div><p class="meta" id="meta" aria-live="polite"></p></div></section>
+<section class="formats" aria-label="Supported formats"><div class="format"><i aria-hidden="true">▤</i><b>Documents</b><small>PDF, Word, PowerPoint, text</small></div><div class="format"><i aria-hidden="true">▦</i><b>Data &amp; archives</b><small>Excel, CSV, JSON, ZIP</small></div><div class="format"><i aria-hidden="true">▧</i><b>Images</b><small>PNG, JPEG, GIF, WebP, SVG</small></div><div class="format"><i aria-hidden="true">▷</i><b>Video &amp; audio</b><small>MP4, WebM, MP3, WAV</small></div></section><p class="footer">Office previews show extracted content. Media playback depends on your browser.</p></main>
+<script>
+"use strict";
+const get = id => document.getElementById(id);
+const picker = get("picker"), panel = get("panel"), surface = get("surface"), list = get("files");
+const files = [];
+let active = -1, dragDepth = 0, preview;
+const filter = get("filter");
+const textLimit = 2 * 1024 * 1024;
+const extensions = name => name.includes(".") ? name.split(".").pop().toLowerCase() : "";
+function node(tag, content, parent = surface) {
+  const element = document.createElement(tag);
+  if (content !== undefined) element.textContent = content;
+  parent.append(element);
+  return element;
+}
+function size(bytes) {
+  return bytes < 1024 ? bytes + " B" : bytes < 1048576 ? (bytes / 1024).toFixed(1) + " KB" : (bytes / 1048576).toFixed(1) + " MB";
+}
+function addFiles(incoming) {
+  const first = files.length;
+  for (const file of incoming) files.push(file);
+  if (files.length > first) {
+    filter.value = "";
+    renderFiles();
+    show(first);
+    surface.focus();
+  }
+}
+function clearFiles() {
+  stopPreview();
+  files.length = 0;
+  active = -1;
+  surface.replaceChildren();
+  list.replaceChildren();
+  get("download").removeAttribute("href");
+  panel.hidden = true;
+  get("drop").hidden = false;
+  get("choose").focus();
+}
+function stopPreview() {
+  preview?.abort();
+  preview = undefined;
+  surface.replaceChildren();
+}
+function removeFile(index) {
+  if (files.length === 1) { clearFiles(); return; }
+  files.splice(index, 1);
+  const wasActive = index === active;
+  active = Math.min(files.length - 1, active - Number(index < active));
+  renderFiles();
+  if (wasActive) { stopPreview(); show(active); }
+  else updateSelection();
+  const selected = list.querySelector('[aria-current="true"]');
+  const focusTarget = selected && !selected.parentElement.hidden ? selected : files.length > 1 ? filter : surface;
+  focusTarget.focus();
+}
+function renderFiles() {
+  const hasList = files.length > 1;
+  get("viewer").classList.toggle("has-list", hasList);
+  get("sidebar").hidden = !hasList;
+  list.replaceChildren();
+  if (!hasList) return;
+  files.forEach((file, index) => {
+    const row = node("div", undefined, list);
+    row.className = "file-row";
+    row.dataset.name = file.name.toLowerCase();
+    const open = node("button", file.name, row);
+    open.title = file.name;
+    open.onclick = () => show(index);
+    const remove = node("button", "×", row);
+    remove.className = "remove";
+    remove.setAttribute("aria-label", "Remove " + file.name);
+    remove.onclick = () => removeFile(index);
+  });
+  node("p", "No matching files.", list).id = "no-matches";
+  filterFiles();
+}
+function filterFiles() {
+  const query = filter.value.trim().toLowerCase();
+  let found = false;
+  for (const row of list.querySelectorAll(".file-row")) {
+    row.hidden = !row.dataset.name.includes(query);
+    found ||= !row.hidden;
+  }
+  if (get("no-matches")) get("no-matches").hidden = found;
+}
+function updateSelection() {
+  const file = files[active];
+  get("meta").textContent = [extensions(file.name).toUpperCase() || "File", size(file.size), (active + 1) + " of " + files.length].join(" · ");
+  list.querySelectorAll(".file-row").forEach((row, index) => row.firstElementChild.setAttribute("aria-current", String(index === active)));
+}
+filter.oninput = filterFiles;
+window.addEventListener("keydown", event => {
+  if (!event.altKey || event.ctrlKey || event.metaKey || active < 0) return;
+  const direction = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+  if (!direction || files.length < 2) return;
+  event.preventDefault();
+  show((active + direction + files.length) % files.length);
+});
+get("choose").onclick = get("add").onclick = () => picker.click();
+get("clear").onclick = clearFiles;
+picker.onchange = () => { addFiles(picker.files); picker.value = ""; };
+function fileDrag(event) { return Array.from(event.dataTransfer.types).includes("Files"); }
+window.addEventListener("dragenter", event => {
+  if (!fileDrag(event)) return;
+  dragDepth++;
+  document.body.classList.add("drag");
+});
+window.addEventListener("dragover", event => { if (fileDrag(event)) event.preventDefault(); });
+window.addEventListener("dragleave", () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) document.body.classList.remove("drag");
+});
+window.addEventListener("drop", event => {
+  dragDepth = 0;
+  document.body.classList.remove("drag");
+  if (!event.dataTransfer.files.length) return;
+  event.preventDefault();
+  addFiles(event.dataTransfer.files);
+});
+function dataTable(rows, parent = surface, headings = false) {
+  if (!rows.length) { node("p", "No rows to display.", parent); return; }
+  const wrapper = node("div", undefined, parent);
+  wrapper.className = "table-wrap";
+  wrapper.tabIndex = 0;
+  wrapper.setAttribute("aria-label", "Preview table");
+  const table = node("table", undefined, wrapper);
+  let displayed = 0;
+  function appendRows() {
+    if (!wrapper.isConnected) return;
+    const batch = document.createDocumentFragment();
+    const end = Math.min(displayed + 24, rows.length);
+    for (; displayed < end; displayed++) {
+      const line = node("tr", undefined, batch);
+      for (const value of rows[displayed].slice(0, 100)) {
+        if (headings && displayed === 0) node("th", value, line).scope = "col";
+        else line.insertCell().textContent = value;
+      }
+    }
+    table.append(batch);
+    if (displayed < rows.length) requestAnimationFrame(appendRows);
+  }
+  appendRows();
+  if (rows.length >= 500 || rows.some(row => row.length > 100)) node("p", "Preview limited to 500 rows and 100 columns.", parent);
+}
+function separated(text, delimiter) {
+  const rows = [];
+  let row = [], value = "", quoted = false;
+  for (let i = 0; i < text.length && rows.length < 500; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') { value += '"'; i++; }
+      else if (quoted || !value) quoted = !quoted;
+      else value += char;
+    } else if (!quoted && char === delimiter) {
+      row.push(value); value = "";
+    } else if (!quoted && (char === "\r" || char === "\n")) {
+      row.push(value); rows.push(row); row = []; value = "";
+      if (char === "\r" && text[i + 1] === "\n") i++;
+    } else value += char;
+  }
+  if (rows.length < 500 && (row.length || value)) rows.push([...row, value]);
+  return rows;
+}
+async function zipEntries(file) {
+  const tailStart = Math.max(0, file.size - 65557);
+  const tail = new DataView(await file.slice(tailStart).arrayBuffer());
+  let end = tail.byteLength - 22;
+  for (; end >= 0; end--) {
+    if (tail.getUint32(end, true) === 0x06054b50 && end + 22 + tail.getUint16(end + 20, true) === tail.byteLength) break;
+  }
+  if (end < 0) throw Error("Invalid ZIP directory");
+  const count = tail.getUint16(end + 10, true);
+  const length = tail.getUint32(end + 12, true);
+  const offset = tail.getUint32(end + 16, true);
+  if (count === 65535 || length > 24 * 1024 * 1024 || offset + length > file.size) throw Error("Unsupported ZIP directory");
+  const directory = new DataView(await file.slice(offset, offset + length).arrayBuffer());
+  const entries = new Map();
+  for (let index = 0, pos = 0; index < count; index++) {
+    if (directory.getUint32(pos, true) !== 0x02014b50) throw Error("Invalid ZIP entry");
+    const nameLength = directory.getUint16(pos + 28, true);
+    const name = new TextDecoder().decode(new Uint8Array(directory.buffer, pos + 46, nameLength));
+    entries.set(name, {flags: directory.getUint16(pos + 8, true), method: directory.getUint16(pos + 10, true),
+      packed: directory.getUint32(pos + 20, true), bytes: directory.getUint32(pos + 24, true),
+      offset: directory.getUint32(pos + 42, true)});
+    pos += 46 + nameLength + directory.getUint16(pos + 30, true) + directory.getUint16(pos + 32, true);
+  }
+  return entries;
+}
+async function readXml(file, entry, signal) {
+  const limit = 12 * 1024 * 1024;
+  if (!entry || entry.flags & 1 || entry.bytes > limit || entry.packed > limit) throw Error("Unsupported package entry");
+  const header = new DataView(await file.slice(entry.offset, entry.offset + 30).arrayBuffer());
+  signal.throwIfAborted();
+  if (header.getUint32(0, true) !== 0x04034b50) throw Error("Invalid package entry");
+  const start = entry.offset + 30 + header.getUint16(26, true) + header.getUint16(28, true);
+  if (start + entry.packed > file.size) throw Error("Truncated package entry");
+  const data = file.slice(start, start + entry.packed);
+  let source;
+  if (entry.method === 0) source = await data.text();
+  else if (entry.method === 8) {
+    const reader = data.stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+    const cancel = () => { reader.cancel().catch(() => {}); };
+    signal.addEventListener("abort", cancel, {once:true});
+    const decoder = new TextDecoder();
+    let total = 0;
+    const chunks = [];
+    try {
+      for (;;) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > limit) throw Error("Package entry exceeds preview limit");
+        chunks.push(decoder.decode(value, {stream:true}));
+      }
+    } finally {
+      signal.removeEventListener("abort", cancel);
+      await reader.cancel();
+    }
+    source = chunks.join("") + decoder.decode();
+  } else throw Error("Unsupported compression");
+  signal.throwIfAborted();
+  if (/<!DOCTYPE/i.test(source)) throw Error("Unsupported XML declaration");
+  const xml = new DOMParser().parseFromString(source, "application/xml");
+  if (xml.querySelector("parsererror")) throw Error("Invalid package XML");
+  return xml;
+}
+const descendants = (element, name) => Array.from(element.getElementsByTagNameNS("*", name));
+const extractText = element => descendants(element, "t").map(part => part.textContent).join("");
+async function packagePreview(file, ext, target, signal) {
+  const entries = await zipEntries(file);
+  const current = () => !signal.aborted;
+  const xml = path => readXml(file, entries.get(path), signal);
+  if (!current()) return;
+  if (ext === "zip") {
+    node("h2", "Archive contents", target);
+    dataTable([["Name", "Size"], ...Array.from(entries).slice(0, 499).map(([name, entry]) => [name, size(entry.bytes)])], target, true);
+  } else if (ext === "docx") {
+    const documentXml = await xml("word/document.xml");
+    if (!current()) return;
+    const article = node("article", undefined, target);
+    const paragraphs = descendants(documentXml, "p").slice(0, 1500).map(extractText);
+    for (const line of paragraphs) if (line.trim()) node("p", line, article);
+    if (!article.childElementCount) node("p", "No extractable text found.", article);
+    if (paragraphs.length === 1500) node("p", "Preview limited to 1,500 paragraphs.", target);
+  } else if (ext === "pptx") {
+    const slides = Array.from(entries.keys()).filter(path => /^ppt\/slides\/slide\d+\.xml$/.test(path))
+      .sort((a, b) => a.localeCompare(b, undefined, {numeric:true}));
+    if (!slides.length) node("p", "No slides found.", target);
+    for (const [index, path] of slides.slice(0, 50).entries()) {
+      const slide = await xml(path);
+      if (!current()) return;
+      const article = node("article", undefined, target);
+      node("h2", "Slide " + (index + 1), article);
+      const lines = descendants(slide, "p").map(extractText).filter(Boolean);
+      for (const line of lines.length ? lines : ["No extractable text."]) node("p", line, article);
+    }
+    if (slides.length > 50) node("p", "Preview limited to 50 slides.", target);
+  } else {
+    const [book, links, shared] = await Promise.all([xml("xl/workbook.xml"), xml("xl/_rels/workbook.xml.rels"),
+      entries.has("xl/sharedStrings.xml") ? xml("xl/sharedStrings.xml") : null]);
+    if (!current()) return;
+    const strings = shared ? descendants(shared, "si").map(extractText) : [];
+    const paths = new Map(descendants(links, "Relationship").filter(rel => !rel.hasAttribute("TargetMode"))
+      .map(rel => [rel.getAttribute("Id"), rel.getAttribute("Target")]));
+    const sheets = descendants(book, "sheet").map(sheet => ({
+      name: sheet.getAttribute("name"),
+      path: paths.get(Array.from(sheet.attributes).find(attr => attr.localName === "id")?.value)
+    })).filter(sheet => sheet.path);
+    if (!sheets.length) { node("p", "No worksheets found.", target); return; }
+    const select = node("select", undefined, target);
+    select.setAttribute("aria-label", "Worksheet");
+    for (const [index, sheet] of sheets.entries()) node("option", sheet.name, select).value = index;
+    const contents = node("div", undefined, target);
+    let sheetRevision = 0;
+    const display = async () => {
+      const selected = ++sheetRevision;
+      const path = sheets[Number(select.value)].path;
+      contents.textContent = "Reading worksheet…";
+      try {
+        const normalized = new URL(path, "https://folio.invalid/xl/").pathname.slice(1);
+        const sheet = await xml(normalized);
+        if (!current() || selected !== sheetRevision) return;
+        const rows = descendants(sheet, "row").slice(0, 500).map(row => {
+          const cells = [];
+          for (const cell of descendants(row, "c").slice(0, 100)) {
+            const address = /^[A-Z]+/.exec(cell.getAttribute("r") || "");
+            const column = address ? Array.from(address[0]).reduce((index, char) => index * 26 + char.charCodeAt(0) - 64, 0) - 1 : cells.length;
+            if (column >= 100) continue;
+            const value = descendants(cell, "v")[0]?.textContent ?? "";
+            const kind = cell.getAttribute("t");
+            cells[column] = kind === "s" ? strings[Number(value)] ?? "" : kind === "inlineStr" ? extractText(cell) : value;
+          }
+          return Array.from(cells, value => value ?? "");
+        });
+        contents.replaceChildren();
+        dataTable(rows, contents);
+      } catch {
+        if (current() && selected === sheetRevision) contents.textContent = "This worksheet couldn’t be read.";
+      }
+    };
+    select.onchange = display;
+    await display();
+  }
+}
+const imageTypes = {png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", svg:"image/svg+xml", bmp:"image/bmp", ico:"image/x-icon", avif:"image/avif"};
+const plain = new Set("txt md markdown csv tsv json xml yaml yml log ini cfg html css js ts jsx tsx py java c cpp h rs go rb php sql sh ps1 toml rtf srt vtt".split(" "));
+async function show(index) {
+  if (index === active && preview) return;
+  stopPreview();
+  active = index;
+  preview = new AbortController();
+  const {signal} = preview, current = () => !signal.aborted;
+  const file = files[index], ext = extensions(file.name);
+  const objectUrl = blob => {
+    const url = URL.createObjectURL(blob);
+    signal.addEventListener("abort", () => URL.revokeObjectURL(url), {once:true});
+    return url;
+  };
+  const url = objectUrl(file);
+  get("drop").hidden = true;
+  panel.hidden = false;
+  get("filename").textContent = file.name;
+  get("download").href = url;
+  get("download").download = file.name;
+  updateSelection();
+  surface.scrollTop = 0;
+  const unavailable = message => { if (current()) { surface.replaceChildren(); node("p", message); } };
+  try {
+    if (ext === "pdf" || file.type === "application/pdf") {
+      const frame = node("iframe");
+      frame.title = "PDF preview";
+      // A typed blob ensures files selected without a MIME type still render as PDFs.
+      frame.src = file.type === "application/pdf" ? url : objectUrl(file.slice(0, file.size, "application/pdf"));
+    } else if (imageTypes[ext] || file.type.startsWith("image/")) {
+      const img = node("img");
+      img.alt = file.name;
+      img.onerror = () => unavailable("This image couldn’t be displayed. You can still download the original.");
+      const type = Object.hasOwn(imageTypes, ext) ? imageTypes[ext] : file.type;
+      img.src = type !== file.type ? objectUrl(file.slice(0, file.size, type)) : url;
+    } else if (file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v)$/.test(ext) ||
+               file.type.startsWith("audio/") || /^(mp3|wav|ogg|m4a|flac|aac)$/.test(ext)) {
+      const video = file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v)$/.test(ext);
+      const media = node(video ? "video" : "audio");
+      media.controls = true;
+      media.preload = "metadata";
+      media.onerror = () => unavailable("Your browser couldn’t play this file. You can still download the original.");
+      media.src = url;
+    } else if (["docx", "pptx", "xlsx", "zip"].includes(ext)) {
+      const status = node("p", "Reading file…");
+      await packagePreview(file, ext, surface, signal);
+      status.remove();
+    } else {
+      const probe = await file.slice(0, 8192).arrayBuffer();
+      if (!current()) return;
+      const bytes = new Uint8Array(probe);
+      const isUtf16 = (bytes[0] === 255 && bytes[1] === 254) || (bytes[0] === 254 && bytes[1] === 255);
+      let isText = plain.has(ext) || file.type.startsWith("text/") || isUtf16;
+      if (!isText && !bytes.some(byte => byte < 32 && ![9, 10, 13].includes(byte))) {
+        try { new TextDecoder("utf-8", {fatal:true}).decode(bytes, {stream:true}); isText = true; } catch {}
+      }
+      if (!isText) { unavailable("Preview isn’t available for this format. You can still download the original."); return; }
+      const decoder = new TextDecoder(isUtf16 ? (bytes[0] === 255 ? "utf-16le" : "utf-16be") : "utf-8");
+      let value = decoder.decode(await file.slice(0, textLimit).arrayBuffer());
+      if (!current()) return;
+      if (ext === "csv" || ext === "tsv") dataTable(separated(value, ext === "tsv" ? "\t" : ","));
+      else {
+        if (ext === "json" && file.size <= textLimit) {
+          try { value = JSON.stringify(JSON.parse(value), null, 2); } catch {}
+        }
+        node("pre", value || "This file is empty.");
+      }
+      if (file.size > textLimit) node("p", "Showing the first 2 MB.");
+    }
+  } catch { unavailable("This file couldn’t be read. It may be damaged, encrypted or use an unsupported format."); }
+}
+</script></body></html>
