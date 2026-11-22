@@ -9,7 +9,8 @@
 <section class="workspace" aria-label="File preview workspace"><input id="picker" type="file" multiple hidden>
 <div class="drop" id="drop"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M12 17v-6m-3 3 3-3 3 3"/></svg></div><h2>Drop files here</h2><p>Open one file or preview several in a batch.</p><button class="primary" id="choose">Choose files</button></div>
 <div id="panel" hidden><div class="toolbar"><strong id="filename"></strong><button id="add" class="secondary">Add files</button><a id="download" class="secondary">Download</a><button id="clear" class="secondary">Clear all</button></div><div class="viewer" id="viewer"><aside id="sidebar"><div class="file-tools"><label for="filter">Find an open file</label><input type="search" id="filter" autocomplete="off"></div><nav id="files" class="files" aria-label="Open files"></nav></aside><div class="surface" id="surface" aria-label="File contents" tabindex="0"></div></div><p class="meta" id="meta" aria-live="polite"></p></div></section>
-<section class="formats" aria-label="Supported formats"><div class="format"><i aria-hidden="true">▤</i><b>Documents</b><small>PDF, Word, PowerPoint, text</small></div><div class="format"><i aria-hidden="true">▦</i><b>Data &amp; archives</b><small>Excel, CSV, JSON, ZIP</small></div><div class="format"><i aria-hidden="true">▧</i><b>Images</b><small>PNG, JPEG, GIF, WebP, SVG</small></div><div class="format"><i aria-hidden="true">▷</i><b>Video &amp; audio</b><small>MP4, WebM, MP3, WAV</small></div></section><p class="footer">Office previews show extracted content. Media playback depends on your browser.</p></main>
+<section class="formats" aria-label="Supported formats"><div class="format"><i aria-hidden="true">▤</i><b>Documents</b><small>PDF, DOC, DOCX, PowerPoint, text</small></div><div class="format"><i aria-hidden="true">▦</i><b>Data &amp; archives</b><small>Excel, CSV, JSON, ZIP</small></div><div class="format"><i aria-hidden="true">▧</i><b>Images</b><small>PNG, JPEG, GIF, WebP, SVG</small></div><div class="format"><i aria-hidden="true">▷</i><b>Video &amp; audio</b><small>MP4, WebM, MP3, WAV</small></div></section><p class="footer">Office previews show extracted content. Media playback depends on your browser.</p></main>
+<script src="vendor/cfb.min.js"></script>
 <script>
 "use strict";
 const get = id => document.getElementById(id);
@@ -239,6 +240,62 @@ async function readXml(file, entry, signal) {
 }
 const descendants = (element, name) => Array.from(element.getElementsByTagNameNS("*", name));
 const extractText = element => descendants(element, "t").map(part => part.textContent).join("");
+function legacyWordText(bytes) {
+  const container = CFB.read(bytes, {type:"array"});
+  function stream(name) {
+    let content = CFB.find(container, "/" + name)?.content;
+    if (!content) throw Error("Missing Word stream");
+    if (!(content instanceof Uint8Array)) content = Uint8Array.from(content);
+    return new DataView(content.buffer, content.byteOffset, content.byteLength);
+  }
+  const word = stream("WordDocument");
+  const flags = word.getUint16(10, true);
+  if (word.getUint16(0, true) !== 0xa5ec || word.getUint16(2, true) < 0xc1 || flags & 0x8100) {
+    throw Error("Unsupported or encrypted Word document");
+  }
+  const table = stream(flags & 0x0200 ? "1Table" : "0Table");
+  const longCountOffset = 34 + 2 * word.getUint16(32, true);
+  const longCount = word.getUint16(longCountOffset, true);
+  if (longCount < 4) throw Error("Invalid Word header");
+  const bodyLength = word.getUint32(longCountOffset + 14, true);
+  const pairCountOffset = longCountOffset + 2 + 4 * longCount;
+  if (word.getUint16(pairCountOffset, true) <= 33) throw Error("Missing Word piece table");
+  // FibRgFcLcb97 entry 33 points to the CLX in the selected table stream.
+  const clx = pairCountOffset + 2 + 8 * 33;
+  let cursor = word.getUint32(clx, true);
+  const end = cursor + word.getUint32(clx + 4, true);
+  if (cursor >= end || end > table.byteLength) throw Error("Invalid Word piece table");
+  while (cursor + 3 <= end && table.getUint8(cursor) === 1) {
+    cursor += 3 + table.getUint16(cursor + 1, true);
+  }
+  if (cursor + 5 > end || table.getUint8(cursor) !== 2) throw Error("Missing Word text pieces");
+  const length = table.getUint32(cursor + 1, true);
+  const start = cursor + 5;
+  if (length < 4 || (length - 4) % 12 || start + length > end) throw Error("Invalid Word text pieces");
+  const count = (length - 4) / 12;
+  const descriptors = start + (count + 1) * 4;
+  const limit = Math.min(bodyLength, textLimit);
+  const singleByte = new TextDecoder("windows-1252");
+  const unicode = new TextDecoder("utf-16le", {ignoreBOM:true});
+  const chunks = [];
+  for (let index = 0; index < count; index++) {
+    const position = table.getUint32(start + index * 4, true);
+    const next = table.getUint32(start + (index + 1) * 4, true);
+    if (position >= limit) break;
+    if (next <= position) throw Error("Invalid Word character positions");
+    const location = table.getUint32(descriptors + index * 8 + 2, true);
+    const compressed = Boolean(location & 0x40000000);
+    const width = compressed ? 1 : 2;
+    const offset = (location & 0x3fffffff) / (compressed ? 2 : 1);
+    const size = (Math.min(next, limit) - position) * width;
+    if (!Number.isInteger(offset) || offset + size > word.byteLength) throw Error("Invalid Word text location");
+    const piece = new Uint8Array(word.buffer, word.byteOffset + offset, size);
+    chunks.push((compressed ? singleByte : unicode).decode(piece));
+  }
+  const text = chunks.join("").replace(/[\r\x0b\x0c]/g, "\n").replace(/\x07/g, "\t")
+    .replace(/[\x00-\x08\x0e-\x1f]/g, "").trim();
+  return {text, truncated:bodyLength > limit};
+}
 async function packagePreview(file, ext, target, signal) {
   const entries = await zipEntries(file);
   const current = () => !signal.aborted;
@@ -358,6 +415,18 @@ async function show(index) {
       media.preload = "metadata";
       media.onerror = () => unavailable("Your browser couldn’t play this file. You can still download the original.");
       media.src = url;
+    } else if (ext === "doc") {
+      if (file.size > 16 * 1024 * 1024) {
+        unavailable("Legacy Word previews are limited to 16 MB. You can still download the original.");
+        return;
+      }
+      const status = node("p", "Reading Word document…");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!current()) return;
+      const {text, truncated} = legacyWordText(bytes);
+      status.remove();
+      node("pre", text || "No extractable text found.");
+      if (truncated) node("p", "Showing the first 2 million characters.");
     } else if (["docx", "pptx", "xlsx", "zip"].includes(ext)) {
       const status = node("p", "Reading file…");
       await packagePreview(file, ext, surface, signal);
