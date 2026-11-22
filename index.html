@@ -3,6 +3,7 @@
 <style>
 *{box-sizing:border-box} [hidden]{display:none!important} body{margin:0;background:#f6f5fc;color:#201839;font:16px system-ui,sans-serif} button,a{font:inherit} button{cursor:pointer} :focus-visible{outline:3px solid #8c66f0;outline-offset:4px} header{height:72px;border-bottom:1px solid #e6e0f1;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 max(5vw,20px)} .brand{font-weight:800;font-size:24px;letter-spacing:-1px;display:flex;align-items:center;gap:10px}.logo,.icon{display:grid;place-items:center;color:white;background:#6039d3;border-radius:12px;width:38px;height:38px}.privacy{color:#51446c;font-size:14px}.privacy span{color:#27816b;margin-right:5px} main{width:min(1080px,92vw);margin:62px auto 40px}.intro{text-align:center;margin-bottom:35px}h1{font-size:clamp(38px,7vw,70px);letter-spacing:-.075em;line-height:1.02;margin:0 0 16px}p{line-height:1.55;color:#605675;margin:8px 0}.workspace{background:white;border:1px solid #e5def3;border-radius:24px;padding:18px;box-shadow:0 20px 55px #3820580c} .drop{border:2px dashed #d9cbf8;border-radius:17px;min-height:318px;text-align:center;display:grid;place-content:center;justify-items:center;background:#fbf9ff;padding:24px}.drag .drop,.drag .workspace{background:#eee5ff;border-color:#7047dd}.icon{width:62px;height:62px;border-radius:18px;background:#eee5ff;color:#6039d3;margin-bottom:14px}.icon svg,.logo svg{width:55%;height:55%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}h2{margin:0;font-size:23px;letter-spacing:-.5px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:10px 15px;font-weight:650;font-size:14px}.primary{color:#fff;background:#6039d3;border:1px solid #6039d3}.primary:hover{background:#4e2ab9}.secondary{color:#4d367e;background:#f8f4ff;border:1px solid #e6dcf7}.drop button{margin-top:13px}.formats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.format{padding:16px 17px;background:white;border:1px solid #e5def3;border-radius:14px}.format b{display:block;font-size:14px}.format small{color:#605675;font-size:13px;display:block;margin-top:5px}.format i{font-style:normal;color:#6740c8;display:block;font-size:18px;margin-bottom:8px}.footer{margin-top:23px;text-align:center;font-size:13px;color:#605675}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar strong{flex:1;overflow-wrap:anywhere;min-width:125px}.viewer{display:grid;grid-template-columns:minmax(0,1fr)}.viewer.has-list{grid-template-columns:210px minmax(0,1fr);gap:12px}.files{max-height:65vh;overflow:auto}.files button{display:block;width:100%;background:white;border:0;border-radius:8px;text-align:left;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding:10px;color:#30264b}.files button[aria-current=true]{background:#eee5ff;font-weight:700}.surface{background:#f6f3fb;border:1px solid #ebe5f4;border-radius:12px;min-height:320px;max-height:76vh;overflow:auto;padding:18px;display:grid;align-content:start}.surface img,.surface video{max-width:100%;max-height:68vh;margin:auto;display:block;object-fit:contain}.surface iframe{width:100%;height:68vh;border:0}.surface audio{width:min(100%,500px);margin:60px auto}.surface pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.55 ui-monospace,monospace}.surface table{border-collapse:collapse;width:max-content;max-width:100%;background:white;font-size:14px}.surface td{border:1px solid #e1d9ed;padding:7px 10px;white-space:pre-wrap}.surface article{background:white;padding:20px;border-radius:8px;margin-bottom:12px;overflow-wrap:anywhere}.surface article p{color:#201839;white-space:pre-wrap}.surface select{justify-self:start;margin-bottom:12px;padding:7px;font:inherit}.meta{font-size:13px;margin:9px 0 0}@media(max-width:650px){main{margin-top:38px}.formats{grid-template-columns:repeat(2,1fr)}.viewer.has-list{grid-template-columns:1fr}.files{max-height:120px}.workspace{padding:11px}.privacy{font-size:12px}}
 .file-tools{display:grid;gap:6px;margin:0 0 8px}.file-tools label{font-size:13px;font-weight:700}.file-tools input{width:100%;min-width:0;border:1px solid #ddd4ed;border-radius:8px;padding:8px;font:inherit}.file-row{display:flex;align-items:center}.file-row button:first-child{flex:1;min-width:0}.file-row .remove{width:auto;color:#594777;font-size:19px;padding:5px 9px}.file-row .remove:hover{background:#eee5ff}.table-wrap{overflow:auto;min-width:0}.surface{grid-template-columns:minmax(0,1fr)}.toolbar{position:relative}
+.format-guide{margin-top:16px;background:white;border:1px solid #e5def3;border-radius:14px;padding:16px 18px}.format-guide summary{cursor:pointer;font-weight:700}.format-guide dt{font-weight:700;margin-top:14px}.format-guide dd{margin:4px 0;color:#605675;line-height:1.55;overflow-wrap:anywhere}
 </style></head><body>
 <header><div class="brand"><span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V4h4m10 0h4v4m0 8v4h-4M7 20H3v-4"/><path d="M7 12s2-3 5-3 5 3 5 3-2 3-5 3-5-3-5-3Z"/></svg></span>Folio</div><div class="privacy"><span aria-hidden="true">●</span> Files stay on your device</div></header>
 <main><div class="intro"><h1>See what’s inside.</h1><p>Preview documents, images, media and more in one place.</p></div>
@@ -471,6 +472,30 @@ const packageFormats = {
   odt:"odt", ott:"odt", ods:"ods", ots:"ods", odp:"odp", otp:"odp",
   epub:"epub", zip:"zip", cbz:"zip", jar:"zip", apk:"zip", aab:"zip", whl:"zip", kmz:"zip"
 };
+const videoExtensions = new Set("mp4 webm ogv mov m4v mkv avi mpeg mpg 3gp".split(" "));
+const audioExtensions = new Set("mp3 wav ogg oga opus m4a flac aac aif aiff caf weba".split(" "));
+const guide = node("details", undefined, document.querySelector("main"));
+guide.className = "format-guide";
+document.querySelector(".footer").before(guide);
+node("summary", "All supported file formats", guide);
+const formatList = node("dl", undefined, guide);
+const packageTypes = (...types) => Object.keys(packageFormats).filter(ext => types.includes(packageFormats[ext]));
+const groups = [
+  ["PDF", ["pdf"]],
+  ["Documents and ebooks · extracted text", ["doc", ...packageTypes("docx", "odt", "epub")]],
+  ["Spreadsheets · cell values", ["csv", "tsv", ...packageTypes("xlsx", "ods")]],
+  ["Presentations · extracted slide text", packageTypes("pptx", "odp")],
+  ["Images · browser support varies", Object.keys(imageTypes)],
+  ["Video · browser support varies", [...videoExtensions]],
+  ["Audio · browser support varies", [...audioExtensions]],
+  ["Archives · file listing", ["tar", ...packageTypes("zip")]],
+  ["Text, code and data · source view", [...plain].filter(ext => !["csv", "tsv"].includes(ext))]
+];
+for (const [label, formats] of groups) {
+  node("dt", label, formatList);
+  node("dd", formats.sort().map(ext => "." + ext).join(", "), formatList);
+}
+node("p", "Folio can also detect many plain-text files with other extensions. Other binary files display file details and a hexadecimal header.", guide);
 function inspectBinary(file, bytes) {
   node("h2", "File details");
   node("p", "A visual preview is unavailable. You can inspect the file header or download the original.");
@@ -544,9 +569,9 @@ async function show(index) {
       img.onerror = () => unavailable("Your browser couldn’t display this image. You can still download the original.");
       const type = Object.hasOwn(imageTypes, ext) ? imageTypes[ext] : file.type;
       img.src = type !== file.type ? objectUrl(file.slice(0, file.size, type)) : url;
-    } else if (file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v|mkv|avi|mpeg|mpg|3gp)$/.test(ext) ||
-               file.type.startsWith("audio/") || /^(mp3|wav|ogg|oga|opus|m4a|flac|aac|aif|aiff|caf|weba)$/.test(ext)) {
-      const video = file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v|mkv|avi|mpeg|mpg|3gp)$/.test(ext);
+    } else if (file.type.startsWith("video/") || videoExtensions.has(ext) ||
+               file.type.startsWith("audio/") || audioExtensions.has(ext)) {
+      const video = file.type.startsWith("video/") || videoExtensions.has(ext);
       const media = node(video ? "video" : "audio");
       media.controls = true;
       media.preload = "metadata";
