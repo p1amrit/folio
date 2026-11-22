@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Preview documents, images, media and more locally in your browser."><title>Folio — File preview</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; script-src 'self' 'sha256-wVCnlS2K09jTYdZys4+Rr10TC0WrwIayEre+Y9Nfo48=' 'sha256-CBF3r7d/NJajXB6m9XopLf6iD++kcPkJiXrd6dKVsUI='; style-src 'self'; img-src blob: data:; media-src blob:; object-src 'none'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; script-src 'self' 'sha256-wVCnlS2K09jTYdZys4+Rr10TC0WrwIayEre+Y9Nfo48=' 'sha256-/dyeLcbSKCMn8liGTeBgyb1QRoCGDY7HcCiGZhm9IyM='; style-src 'self'; img-src blob: data:; media-src blob:; object-src 'none'; frame-src 'none'">
 <script>
   try {
     const theme = localStorage.getItem("folio-theme");
@@ -545,6 +545,32 @@ for (const [label, formats] of groups) {
   node("dd", formats.sort().map(ext => "." + ext).join(", "), formatList);
 }
 node("p", "Folio can also detect many plain-text files with other extensions. Other binary files display file details and a hexadecimal header.", guide);
+async function explainAvi(file, signal) {
+  const bytes = new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer());
+  if (signal.aborted) return;
+  const view = new DataView(bytes.buffer);
+  const tag = offset => String.fromCharCode(...bytes.subarray(offset, offset + 4));
+  let codec;
+  function scan(start, end, depth) {
+    for (let at = start; at + 8 <= end; ) {
+      const kind = tag(at);
+      const length = view.getUint32(at + 4, true);
+      const content = at + 8;
+      const limit = Math.min(end, content + length);
+      if (kind === "strh" && limit >= content + 8 && tag(content) === "vids") {
+        const handler = tag(content + 4).trim();
+        if (/^[ -~]{1,4}$/.test(handler)) return handler;
+      }
+      if (kind === "LIST" && depth < 2 && ["hdrl", "strl"].includes(tag(content))) {
+        const found = scan(content + 4, limit, depth + 1);
+        if (found) return found;
+      }
+      at = content + length + (length % 2);
+    }
+  }
+  if (bytes.length >= 12 && tag(0) === "RIFF" && tag(8) === "AVI ") codec = scan(12, bytes.length, 0);
+  if (codec) node("p", "AVI video codec · " + codec);
+}
 function inspectBinary(file, bytes) {
   node("h2", "File details");
   node("p", "A visual preview is unavailable. You can inspect the file header or download the original.");
@@ -673,7 +699,17 @@ async function show(index) {
       const media = node(video ? "video" : "audio");
       media.controls = true;
       media.preload = "metadata";
-      media.onerror = () => unavailable("Your browser couldn’t play this file. You can still download the original.");
+      media.onerror = () => {
+        if (ext !== "avi") {
+          unavailable("Your browser couldn’t play this file. You can still download the original.");
+          return;
+        }
+        if (!current()) return;
+        surface.replaceChildren();
+        node("h2", "AVI playback unavailable");
+        node("p", "This browser couldn’t play the AVI. Open the original in a desktop media player, or convert it locally to MP4 with H.264 video and AAC audio for browser playback.");
+        explainAvi(file, signal).catch(() => {});
+      };
       media.src = url;
     } else if (ext === "tar") {
       const status = node("p", "Reading archive…");
