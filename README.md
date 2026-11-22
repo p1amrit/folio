@@ -10,8 +10,11 @@ Open `index.html` in a modern browser. The app uses HTML, CSS, and vanilla JavaS
 
 - PDF, common images, and browser-supported video and audio
 - Plain text, code, JSON, CSV, and TSV
-- Extracted content from legacy Word 97–2003 DOC, DOCX, XLSX, and PPTX
-- ZIP archive listings
+- Extracted content from Word DOC and DOCX, Excel XLSX, and PowerPoint PPTX, including supported Office templates and macro-enabled variants
+- Extracted text, cells, and slide text from OpenDocument ODT, ODS, and ODP
+- Chapter text from EPUB ebooks
+- Member listings from ZIP, TAR, and ZIP-based formats such as CBZ, JAR, and APK
+- File size, media type, and the first 256 bytes in hexadecimal for other binary formats
 
 You can filter open files by filename and switch previews with Alt + Up or Down. Office previews extract content without reproducing the original page or slide layout. Unsupported files can be downloaded from the workspace.
 

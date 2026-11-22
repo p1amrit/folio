@@ -9,7 +9,7 @@
 <section class="workspace" aria-label="File preview workspace"><input id="picker" type="file" multiple hidden>
 <div class="drop" id="drop"><div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M12 17v-6m-3 3 3-3 3 3"/></svg></div><h2>Drop files here</h2><p>Open one file or preview several in a batch.</p><button class="primary" id="choose">Choose files</button></div>
 <div id="panel" hidden><div class="toolbar"><strong id="filename"></strong><button id="add" class="secondary">Add files</button><a id="download" class="secondary">Download</a><button id="clear" class="secondary">Clear all</button></div><div class="viewer" id="viewer"><aside id="sidebar"><div class="file-tools"><label for="filter">Find an open file</label><input type="search" id="filter" autocomplete="off"></div><nav id="files" class="files" aria-label="Open files"></nav></aside><div class="surface" id="surface" aria-label="File contents" tabindex="0"></div></div><p class="meta" id="meta" aria-live="polite"></p></div></section>
-<section class="formats" aria-label="Supported formats"><div class="format"><i aria-hidden="true">▤</i><b>Documents</b><small>PDF, DOC, DOCX, PowerPoint, text</small></div><div class="format"><i aria-hidden="true">▦</i><b>Data &amp; archives</b><small>Excel, CSV, JSON, ZIP</small></div><div class="format"><i aria-hidden="true">▧</i><b>Images</b><small>PNG, JPEG, GIF, WebP, SVG</small></div><div class="format"><i aria-hidden="true">▷</i><b>Video &amp; audio</b><small>MP4, WebM, MP3, WAV</small></div></section><p class="footer">Office previews show extracted content. Media playback depends on your browser.</p></main>
+<section class="formats" aria-label="Supported formats"><div class="format"><i aria-hidden="true">▤</i><b>Documents</b><small>PDF, Word, PowerPoint, ODT, EPUB</small></div><div class="format"><i aria-hidden="true">▦</i><b>Data &amp; archives</b><small>Excel, ODS, CSV, ZIP, TAR</small></div><div class="format"><i aria-hidden="true">▧</i><b>Images</b><small>PNG, JPEG, GIF, WebP, SVG</small></div><div class="format"><i aria-hidden="true">▷</i><b>Video &amp; audio</b><small>MP4, WebM, MP3, WAV</small></div></section><p class="footer">Document previews may show extracted content. Image and media support depends on your browser.</p></main>
 <script src="vendor/cfb.min.js"></script>
 <script>
 "use strict";
@@ -240,6 +240,40 @@ async function readXml(file, entry, signal) {
 }
 const descendants = (element, name) => Array.from(element.getElementsByTagNameNS("*", name));
 const extractText = element => descendants(element, "t").map(part => part.textContent).join("");
+function textBlocks(root, target) {
+  const blocks = Array.from(root.querySelectorAll("*")).filter(element =>
+    /^(p|h[1-6]?|li|blockquote|pre|dt|dd)$/.test(element.localName.toLowerCase()) &&
+    !element.closest("script, style, svg") &&
+    !Array.from(element.children).some(child => /^(p|li|blockquote|pre)$/.test(child.localName)));
+  const article = node("article", undefined, target);
+  for (const block of blocks.slice(0, 1500)) {
+    const text = block.textContent.trim();
+    if (text) node("p", text, article);
+  }
+  if (!article.childElementCount) node("p", "No extractable text found.", article);
+  if (blocks.length > 1500) node("p", "Preview limited to 1,500 text blocks.", target);
+}
+function chooseSection(target, label, sections, render) {
+  if (!sections.length) { node("p", "No readable sections found.", target); return; }
+  const select = node("select", undefined, target);
+  select.setAttribute("aria-label", label);
+  sections.forEach((section, index) => { node("option", section.name, select).value = index; });
+  const contents = node("div", undefined, target);
+  const display = async () => {
+    // A detached section also prevents old async renders from replacing a newer selection.
+    const section = node("div", undefined, contents);
+    contents.replaceChildren(section);
+    try { await render(sections[Number(select.value)], section); }
+    catch { section.textContent = "This section couldn’t be read."; }
+  };
+  select.onchange = display;
+  return display();
+}
+function packagePath(base, relative) {
+  const url = new URL(relative, "https://folio.invalid/" + base);
+  if (url.origin !== "https://folio.invalid") throw Error("External package reference");
+  return decodeURIComponent(url.pathname.slice(1));
+}
 function legacyWordText(bytes) {
   const container = CFB.read(bytes, {type:"array"});
   function stream(name) {
@@ -304,6 +338,62 @@ async function packagePreview(file, ext, target, signal) {
   if (ext === "zip") {
     node("h2", "Archive contents", target);
     dataTable([["Name", "Size"], ...Array.from(entries).slice(0, 499).map(([name, entry]) => [name, size(entry.bytes)])], target, true);
+  } else if (ext === "epub") {
+    const container = await xml("META-INF/container.xml");
+    const path = descendants(container, "rootfile")[0]?.getAttribute("full-path");
+    if (!path) throw Error("Missing ebook package");
+    const book = await xml(path);
+    if (!current()) return;
+    const title = descendants(book, "title")[0]?.textContent;
+    if (title) node("h2", title, target);
+    const manifest = new Map(descendants(book, "item")
+      .filter(item => item.getAttribute("media-type") === "application/xhtml+xml")
+      .map(item => [item.getAttribute("id"), item.getAttribute("href")]));
+    const sections = descendants(book, "itemref").map(item => manifest.get(item.getAttribute("idref")))
+      .filter(Boolean).map((href, index) => ({name:"Chapter " + (index + 1), href}));
+    await chooseSection(target, "Chapter", sections, async ({href}, section) => {
+      section.textContent = "Reading chapter…";
+      const chapter = await xml(packagePath(path, href));
+      if (!current() || !section.isConnected) return;
+      section.replaceChildren();
+      const body = descendants(chapter, "body")[0];
+      if (body) textBlocks(body, section);
+      else node("p", "No readable chapter body found.", section);
+    });
+  } else if (["odt", "ods", "odp"].includes(ext)) {
+    const doc = await xml("content.xml");
+    if (!current()) return;
+    const body = descendants(doc, "body")[0];
+    if (!body) throw Error("Missing OpenDocument body");
+    if (ext === "odt") textBlocks(body, target);
+    else if (ext === "odp") {
+      const slides = descendants(body, "page");
+      await chooseSection(target, "Slide", slides.map((slide, index) => ({
+        name:"Slide " + (index + 1), slide
+      })), ({slide}, section) => textBlocks(slide, section));
+    } else {
+      const sheets = descendants(body, "table").filter(sheet => sheet.parentElement?.localName === "spreadsheet");
+      const tableNamespace = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
+      await chooseSection(target, "Worksheet", sheets.map((sheet, index) => ({
+        name:sheet.getAttributeNS(tableNamespace, "name") || "Sheet " + (index + 1), sheet
+      })), ({sheet}, section) => {
+        const rows = [];
+        for (const row of descendants(sheet, "table-row")) {
+          const cells = [];
+          for (const cell of row.children) {
+            if (!["table-cell", "covered-table-cell"].includes(cell.localName)) continue;
+            const value = descendants(cell, "p").map(part => part.textContent).join("\n");
+            const repeat = Number(cell.getAttributeNS(tableNamespace, "number-columns-repeated")) || 1;
+            for (let i = 0; i < repeat && cells.length < 100; i++) cells.push(value);
+            if (cells.length === 100) break;
+          }
+          const repeat = Number(row.getAttributeNS(tableNamespace, "number-rows-repeated")) || 1;
+          for (let i = 0; i < repeat && rows.length < 500; i++) rows.push(cells);
+          if (rows.length === 500) break;
+        }
+        dataTable(rows, section);
+      });
+    }
   } else if (ext === "docx") {
     const documentXml = await xml("word/document.xml");
     if (!current()) return;
@@ -372,8 +462,55 @@ async function packagePreview(file, ext, target, signal) {
     await display();
   }
 }
-const imageTypes = {png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", svg:"image/svg+xml", bmp:"image/bmp", ico:"image/x-icon", avif:"image/avif"};
-const plain = new Set("txt md markdown csv tsv json xml yaml yml log ini cfg html css js ts jsx tsx py java c cpp h rs go rb php sql sh ps1 toml rtf srt vtt".split(" "));
+const imageTypes = {png:"image/png", apng:"image/apng", jpg:"image/jpeg", jpeg:"image/jpeg", jfif:"image/jpeg", gif:"image/gif", webp:"image/webp", svg:"image/svg+xml", bmp:"image/bmp", ico:"image/x-icon", avif:"image/avif", tiff:"image/tiff", tif:"image/tiff", heic:"image/heic", heif:"image/heif"};
+const plain = new Set("txt md markdown csv tsv json jsonl ndjson xml yaml yml log ini cfg conf html htm css scss js mjs cjs ts jsx tsx py ipynb java kt swift c cpp h hpp cs rs go rb php sql sh ps1 bat toml rtf srt vtt ass tex bib vcf ics eml mbox properties diff patch".split(" "));
+const packageFormats = {
+  docx:"docx", docm:"docx", dotx:"docx", dotm:"docx",
+  xlsx:"xlsx", xlsm:"xlsx", xltx:"xlsx", xltm:"xlsx",
+  pptx:"pptx", pptm:"pptx", ppsx:"pptx", ppsm:"pptx", potx:"pptx", potm:"pptx",
+  odt:"odt", ott:"odt", ods:"ods", ots:"ods", odp:"odp", otp:"odp",
+  epub:"epub", zip:"zip", cbz:"zip", jar:"zip", apk:"zip", aab:"zip", whl:"zip", kmz:"zip"
+};
+function inspectBinary(file, bytes) {
+  node("h2", "File details");
+  node("p", "A visual preview is unavailable. You can inspect the file header or download the original.");
+  node("p", "Media type · " + (file.type || "Unknown"));
+  node("p", "Size · " + file.size.toLocaleString() + " bytes");
+  node("p", "Header · first " + Math.min(256, bytes.length) + " bytes");
+  const lines = [];
+  for (let offset = 0; offset < Math.min(256, bytes.length); offset += 16) {
+    const row = Array.from(bytes.slice(offset, offset + 16));
+    const hex = row.map(value => value.toString(16).padStart(2, "0")).join(" ").padEnd(47);
+    const ascii = row.map(value => value >= 32 && value < 127 ? String.fromCharCode(value) : ".").join("");
+    lines.push(offset.toString(16).padStart(4, "0") + "  " + hex + "  " + ascii);
+  }
+  node("pre", lines.join("\n"));
+}
+async function tarPreview(file, signal) {
+  const rows = [["Name", "Size"]];
+  const decoder = new TextDecoder();
+  const field = (bytes, start, end) => decoder.decode(bytes.slice(start, end)).split("\0")[0];
+  let offset = 0;
+  while (offset + 512 <= file.size && rows.length < 500) {
+    const header = new Uint8Array(await file.slice(offset, offset + 512).arrayBuffer());
+    signal.throwIfAborted();
+    if (header.every(byte => byte === 0)) break;
+    const checksum = parseInt(field(header, 148, 156).trim(), 8);
+    const actual = header.reduce((sum, byte, index) => sum + (index >= 148 && index < 156 ? 32 : byte), 0);
+    const rawSize = field(header, 124, 136).trim();
+    const bytes = /^[0-7]+$/.test(rawSize) ? parseInt(rawSize, 8) : NaN;
+    if (checksum !== actual || !Number.isSafeInteger(bytes) || offset + 512 + bytes > file.size) {
+      throw Error("Invalid or unsupported TAR header");
+    }
+    const name = field(header, 0, 100);
+    const prefix = field(header, 345, 500);
+    rows.push([prefix ? prefix + "/" + name : name, size(bytes)]);
+    offset += 512 + Math.ceil(bytes / 512) * 512;
+  }
+  if (rows.length === 1 && offset === 0 && file.size < 512) throw Error("Truncated TAR");
+  node("h2", "Archive contents");
+  dataTable(rows, surface, true);
+}
 async function show(index) {
   if (index === active && preview) return;
   stopPreview();
@@ -401,20 +538,24 @@ async function show(index) {
       frame.title = "PDF preview";
       // A typed blob ensures files selected without a MIME type still render as PDFs.
       frame.src = file.type === "application/pdf" ? url : objectUrl(file.slice(0, file.size, "application/pdf"));
-    } else if (imageTypes[ext] || file.type.startsWith("image/")) {
+    } else if (Object.hasOwn(imageTypes, ext) || file.type.startsWith("image/")) {
       const img = node("img");
       img.alt = file.name;
-      img.onerror = () => unavailable("This image couldn’t be displayed. You can still download the original.");
+      img.onerror = () => unavailable("Your browser couldn’t display this image. You can still download the original.");
       const type = Object.hasOwn(imageTypes, ext) ? imageTypes[ext] : file.type;
       img.src = type !== file.type ? objectUrl(file.slice(0, file.size, type)) : url;
-    } else if (file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v)$/.test(ext) ||
-               file.type.startsWith("audio/") || /^(mp3|wav|ogg|m4a|flac|aac)$/.test(ext)) {
-      const video = file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v)$/.test(ext);
+    } else if (file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v|mkv|avi|mpeg|mpg|3gp)$/.test(ext) ||
+               file.type.startsWith("audio/") || /^(mp3|wav|ogg|oga|opus|m4a|flac|aac|aif|aiff|caf|weba)$/.test(ext)) {
+      const video = file.type.startsWith("video/") || /^(mp4|webm|ogv|mov|m4v|mkv|avi|mpeg|mpg|3gp)$/.test(ext);
       const media = node(video ? "video" : "audio");
       media.controls = true;
       media.preload = "metadata";
       media.onerror = () => unavailable("Your browser couldn’t play this file. You can still download the original.");
       media.src = url;
+    } else if (ext === "tar") {
+      const status = node("p", "Reading archive…");
+      await tarPreview(file, signal);
+      status.remove();
     } else if (ext === "doc") {
       if (file.size > 16 * 1024 * 1024) {
         unavailable("Legacy Word previews are limited to 16 MB. You can still download the original.");
@@ -427,9 +568,9 @@ async function show(index) {
       status.remove();
       node("pre", text || "No extractable text found.");
       if (truncated) node("p", "Showing the first 2 million characters.");
-    } else if (["docx", "pptx", "xlsx", "zip"].includes(ext)) {
+    } else if (Object.hasOwn(packageFormats, ext)) {
       const status = node("p", "Reading file…");
-      await packagePreview(file, ext, surface, signal);
+      await packagePreview(file, packageFormats[ext], surface, signal);
       status.remove();
     } else {
       const probe = await file.slice(0, 8192).arrayBuffer();
@@ -440,7 +581,7 @@ async function show(index) {
       if (!isText && !bytes.some(byte => byte < 32 && ![9, 10, 13].includes(byte))) {
         try { new TextDecoder("utf-8", {fatal:true}).decode(bytes, {stream:true}); isText = true; } catch {}
       }
-      if (!isText) { unavailable("Preview isn’t available for this format. You can still download the original."); return; }
+      if (!isText) { inspectBinary(file, bytes); return; }
       const decoder = new TextDecoder(isUtf16 ? (bytes[0] === 255 ? "utf-16le" : "utf-16be") : "utf-8");
       let value = decoder.decode(await file.slice(0, textLimit).arrayBuffer());
       if (!current()) return;
